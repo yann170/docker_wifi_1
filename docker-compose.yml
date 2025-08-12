@@ -1,0 +1,35 @@
+
+
+services:
+ 
+  db:
+    env_file: .env #
+    image: postgres:17-alpine # Utilise une image PostgreSQL légère
+    volumes:
+      - ./data_upgrade/db:/var/lib/postgresql/data # Volume persistant pour les données de la DB
+    environment: # Variables d'environnement pour PostgreSQL
+      POSTGRES_DB: ${DB_NAME} # Nom de la base de données
+      POSTGRES_USER: ${DB_USER}     # Utilisateur de la base de données
+      POSTGRES_PASSWORD: ${DB_PASSWORD} # Mot de passe de la base de données
+    ports:
+      - "5433:5432" # Mapper le port 5432 du conteneur au port 5432 de l'hôte (optionnel, utile pour psql/pgAdmin)
+    healthcheck: # Vérification de l'état de la DB avant de démarrer l'app
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: . # Construire l'image à partir du Dockerfile dans le répertoire actuel
+    ports:
+      - "8000:8000" # Mapper le port 8000 du conteneur FastAPI au port 8000 de l'hôte
+    environment: # Variables d'environnement pour FastAPI (pour se connecter à la DB)
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+    depends_on: # Assure que la DB démarre avant le backend
+      db:
+        condition: service_healthy # Attend que la DB soit saine
+    volumes:
+      - .:/app # Monter le répertoire actuel pour le rechargement à chaud en dev (optionnel)
+
+volumes:
+  postgres_data: # Définir le volume pour la persistance des données

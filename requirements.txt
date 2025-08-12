@@ -1,0 +1,10 @@
+fastapi[standart]
+uvicorn[standard]
+sqlmodel
+psycopg2-binary
+alembic
+python-dotenv
+psycopg2-binary
+routeros-api == 0.8.0
+pydantic-settings
+requests
