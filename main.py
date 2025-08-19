@@ -7,25 +7,15 @@ from sqlmodel import Session,select
 from typing import AsyncGenerator
 from database import engine ,get_session, create_table_in_db
 from models import User, Package, Transaction, Voucher 
-from routes import package
+from routes import package, payement
+from routes import user
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    
-    # Étape de démarrage: Création des tables de la base de données
-    create_table_in_db()  # Assurez-vous que les tables sont créées avant de démarrer l'app
-    # Vous pouvez ajouter d'autres logiques d'initialisation ici
-    yield
-    # Étape d'arrêt: Nettoyage (si nécessaire)
-    print("Arrêt de l'application FastAPI.")
 
-# --- Initialisation de l'application FastAPI ---
 app = FastAPI(
     title="Portail Captif MikroTik API",
     version="0.1.0",
-    description="Backend pour un portail captif personnalisé avec MikroTik.",
-    lifespan=lifespan # Lie la fonction de cycle de vie à l'application
+    description="Backend pour un portail captif personnalisé avec MikroTik."
 )
 
 origins = [
@@ -66,6 +56,8 @@ async def create_test_user(username: str, db: Session = Depends(get_session)):
 @app.get("/users/")
 async def get_all_users(db: Session = Depends(get_session)):
     users = db.exec(select(User)).all()
-    return users
+    return users 
 
 app.include_router(package.router)
+app.include_router(payement.router)
+app.include_router(user.router)

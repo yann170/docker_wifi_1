@@ -3,13 +3,14 @@ from typing import Optional
 from datetime import datetime, timezone 
 from sqlmodel import SQLModel, Field, Relationship
 from uuid import UUID, uuid4
+from pydantic import EmailStr
 
 
 class User(SQLModel, table=True):
     id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
     username: str = Field(index=True, unique=True)
     hashed_password: str = Field()
-    email: Optional[str] = Field(default=None, index=True, unique=True)
+    email: Optional[EmailStr] = Field(default=None, index=True, unique=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
     numero: Optional[str] = Field(default=None, index=True, unique=True)    
     vouchers: list["Voucher"] = Relationship(back_populates="user", passive_deletes="all", cascade_delete=False)
@@ -34,10 +35,10 @@ class Package(SQLModel, table=True):
 
 class Transaction(SQLModel, table=True):
     id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
-    user_id: UUID | None = Field(foreign_key="user.id", ondelete="SET NULL")
-    package_id: UUID | None = Field(foreign_key="package.id", ondelete="SET NULL")
+    user_id:UUID = Field(foreign_key="user.id", ondelete="SET NULL", nullable=True)
+    package_id: UUID = Field(foreign_key="package.id", ondelete="SET NULL", nullable=True)
     amount_paid: float = Field()
-    payment_method: str = Field(default="cash")
+    payment_method: str | None = Field(default="cash")
     payment_status: str = Field(default="pending")
     payment_gateway_ref: Optional[str] = Field(default=None, unique=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
@@ -49,8 +50,8 @@ class Voucher(SQLModel, table=True):
     id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
     username_voucher: str = Field(index=True, unique=True)
     password_voucher: str
-    user_id: UUID | None = Field(foreign_key="user.id", ondelete="SET NULL")
-    package_id: UUID | None = Field(foreign_key="package.id", ondelete="SET NULL")
+    user_id: UUID | None = Field(foreign_key="user.id", ondelete="SET NULL",nullable=True)
+    package_id: UUID | None = Field(foreign_key="package.id", ondelete="SET NULL",nullable=True)
     generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
     user: Optional["User"] = Relationship(back_populates="vouchers")
     package: Optional["Package"] = Relationship(back_populates="vouchers")

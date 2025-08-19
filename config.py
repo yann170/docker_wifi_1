@@ -1,15 +1,31 @@
-from pydantic import  AnyHttpUrl
+from pydantic import BaseModel, EmailStr
 from pydantic_settings import BaseSettings
 
-class ConfigBase(BaseSettings):
-    api_user: str
-    api_key: str
-    subscription_key: str
-    target_environment: str = "sandbox"
-    callback_host: AnyHttpUrl
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+class AppConfig(BaseSettings):
+    # --- Database ---
+    db_name: str
+    db_user: str
+    db_password: str
+    database_url: str
 
-config = ConfigBase() # type: ignore
+    # --- CinetPay ---
+    apikey: str
+    side_id: str
+    cle_secrete: str
+
+    # --- SMTP ---
+    smtp_server: str
+    smtp_port: int
+    smtp_user: str
+    smtp_password: str
+    smtp_from_email: str
+
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "extra": "forbid",
+    }
+
+# --- Créer une instance ---
+config = AppConfig() # type: ignore 

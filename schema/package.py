@@ -3,6 +3,7 @@ from sqlmodel import SQLModel
 from uuid import UUID, uuid4
 from schema.voucher import VoucherReadSimple
 from schema.transaction import TransactionReadSimple
+from pydantic import EmailStr
 
 
 class PackageReadSimple(SQLModel):

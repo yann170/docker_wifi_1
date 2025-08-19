@@ -8,3 +8,6 @@ psycopg2-binary
 routeros-api == 0.8.0
 pydantic-settings
 requests
+pydantic[email]
+python-multipart
+multipart

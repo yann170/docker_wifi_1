@@ -5,19 +5,20 @@ from schema.voucher import VoucherReadSimple
 from schema.transaction import TransactionReadSimple
 from uuid import UUID, uuid4
 from typing import List
+from pydantic import EmailStr
 
 
 
 class UserCreate(SQLModel):
     username: str
     password: str  
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
     numero: Optional[str] = None
 
 class UserReadSimple(SQLModel):
     id: UUID  
     username: str
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
     created_at: datetime
     numero: Optional[str] = None
 
@@ -28,7 +29,7 @@ class UserReadDetail(UserReadSimple):
 class UserUpdate(SQLModel):
     username: Optional[str] = None
     password: Optional[str] = None
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
     numero: Optional[str] = None
    
 
