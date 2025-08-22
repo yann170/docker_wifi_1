@@ -11,3 +11,7 @@ requests
 pydantic[email]
 python-multipart
 multipart
+passlib[bcrypt] 
+pyjwt
+PyJWT[crypto]
+CinetPay

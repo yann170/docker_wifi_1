@@ -16,7 +16,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 def create_user(user: UserCreate, session: Session = Depends(get_session)):
     db_user = User(
         username=user.username,
-        hashed_password=user.password,  # à remplacer par hash réel
+        hashed_password=user.password, 
         email=user.email,
         numero=user.numero
     )

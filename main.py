@@ -7,7 +7,7 @@ from sqlmodel import Session,select
 from typing import AsyncGenerator
 from database import engine ,get_session, create_table_in_db
 from models import User, Package, Transaction, Voucher 
-from routes import package, payement
+from routes import package, payement,auth
 from routes import user
 
 
@@ -61,3 +61,4 @@ async def get_all_users(db: Session = Depends(get_session)):
 app.include_router(package.router)
 app.include_router(payement.router)
 app.include_router(user.router)
+app.include_router(auth.router)
