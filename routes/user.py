@@ -6,17 +6,20 @@ from typing import Annotated, List
 from database import get_session
 from models import User
 from schema.user import UserCreate, UserReadSimple, UserUpdate
+from services.auth_service.auth import get_password_hash
 
-router = APIRouter(prefix="/users", tags=["Users"])
+router = APIRouter(prefix="/users", tags=["Users"],)
 
 # -------------------------------
 # CREATE
 # -------------------------------
 @router.post("/add_user/", response_model=UserReadSimple)
 def create_user(user: UserCreate, session: Session = Depends(get_session)):
+    hashed_password = get_password_hash(user.password)
+
     db_user = User(
         username=user.username,
-        hashed_password=user.password, 
+        hashed_password=hashed_password,  # à remplacer par un hash réel
         email=user.email,
         numero=user.numero
     )
@@ -58,10 +61,7 @@ def update_user(user_id: UUID, user_update: UserUpdate, session: Session = Depen
     
     update_data = user_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
-        if key == "password":
-            setattr(db_user, "hashed_password", value)  # penser à hasher
-        else:
-            setattr(db_user, key, value)
+            setattr(db_user, key, value )
 
     session.add(db_user)
     session.commit()
@@ -72,10 +72,13 @@ def update_user(user_id: UUID, user_update: UserUpdate, session: Session = Depen
 # DELETE
 # -------------------------------
 @router.delete("/user/{user_id}")
-def delete_user(user_id: UUID, session: Session = Depends(get_session)):
+async def delete_user(user_id: UUID, session: Session = Depends(get_session)):
     db_user = session.get(User, user_id)
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
-    session.delete(db_user)
+    db_user.statut = "delete"
+    session.add(db_user)
     session.commit()
     return {"ok": True}
+
+

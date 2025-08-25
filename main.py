@@ -12,6 +12,7 @@ from routes import user
 
 
 
+
 app = FastAPI(
     title="Portail Captif MikroTik API",
     version="0.1.0",

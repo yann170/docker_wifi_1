@@ -1,22 +1,18 @@
 
 import jwt # type: ignore
-from fastapi import Depends, FastAPI, HTTPException, Security, status
+from fastapi import Depends, HTTPException, Security, status
 from fastapi.security import (
     OAuth2PasswordBearer,
-    OAuth2PasswordRequestForm,
     SecurityScopes,
 )
 from jwt import InvalidTokenError # pyright: ignore[reportMissingImports]
-from schema.auth import User, UserInDB,Token,TokenData
+from schema.auth import User,TokenData
 from passlib.context import CryptContext # pyright: ignore[reportMissingModuleSource]
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 from typing import Annotated
-from datetime import datetime, timedelta, timezone
 from database import get_session
 from sqlmodel import Session
-from typing import Optional
-from sqlmodel import select
-from models import User as UserModel
+from models import User 
 from crud.user import get_user_by_username
 from config import config
 
@@ -25,15 +21,13 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="token",
-    scopes={"me": "Read information about the current user.", "admin": "Read and write all users' information."},
+    scopes={"user": "obtain user information",
+             "admin": "all access",},
 )
-
-
-
 async def get_current_user(
     security_scopes: SecurityScopes,
     token: Annotated[str, Depends(oauth2_scheme)],
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session)
 ):
     if security_scopes.scopes:
         authenticate_value = f'Bearer scope="{security_scopes.scope_str}"'
@@ -69,8 +63,8 @@ async def get_current_user(
 
 
 async def get_current_active_user(
-    current_user: Annotated[User, Security(get_current_user, scopes=["me"])],
+    current_user: Annotated[User, Security(get_current_user, scopes=["user"])],
 ):
-    if current_user.disabled:
+    if current_user.statut=="delete":
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user

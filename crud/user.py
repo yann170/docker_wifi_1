@@ -61,6 +61,16 @@ def update_user(session: Session, user_id: UUID, user_update: UserUpdate) -> Use
 # -------------------------------
 def delete_user(session: Session, user_id: UUID) -> bool:
     db_user = get_user_by_id(session, user_id)
-    session.delete(db_user)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db_user.statut = "deleted"  # Marquer comme supprimé
+    session.add(db_user)
     session.commit()
     return True
+
+def get_role_by_username(session: Session, username: str) -> Optional[str]:
+    stmt = select(User).where(User.username == username)
+    user = session.exec(stmt).first()
+    if user:
+        return user.role
+    return None

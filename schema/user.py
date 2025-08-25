@@ -28,10 +28,8 @@ class UserReadDetail(UserReadSimple):
 
 class UserUpdate(SQLModel):
     username: Optional[str] = None
-    password: Optional[str] = None
     email: Optional[EmailStr] = None
     numero: Optional[str] = None
-   
 
 class UserDelete(SQLModel):
     id: UUID  
