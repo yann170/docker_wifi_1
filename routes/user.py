@@ -7,6 +7,9 @@ from database import get_session
 from models import User
 from schema.user import UserCreate, UserReadSimple, UserUpdate
 from services.auth_service.auth import get_password_hash
+from fastapi import Security
+from crud.auth import get_current_user  
+from crud.user import get_user_by_id
 
 router = APIRouter(prefix="/users", tags=["Users"],)
 
@@ -31,7 +34,7 @@ def create_user(user: UserCreate, session: Session = Depends(get_session)):
 # -------------------------------
 # READ LIST
 # -------------------------------
-@router.get("/get_users/", response_model=List[UserReadSimple])
+@router.get("/get_users/", response_model=List[User])
 def read_users(
     session: Session = Depends(get_session),
     offset: int = 0,
@@ -81,4 +84,21 @@ async def delete_user(user_id: UUID, session: Session = Depends(get_session)):
     session.commit()
     return {"ok": True}
 
+@router.put("/users/{user_id}/roles")
+async def update_user_roles(
+    user_id: UUID,
+    new_roles: str, # Par exemple, "admin" ou "user"
+    current_user: Annotated[User, Security(get_current_user, scopes=["admin"])],
+    db: Session = Depends(get_session)
+):
+    # Vérifier si l'utilisateur à modifier existe
+    user = get_user_by_id(db, user_id )
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Mise à jour des rôles (tu peux stocker ça en JSON, array ou table liée)
+    user.role = new_roles
+    db.commit()
+    db.refresh(user)
 
+    return {"msg": "User roles updated successfully", "user": user.username, "roles": user.role}

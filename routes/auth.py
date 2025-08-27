@@ -23,6 +23,8 @@ from sqlmodel import Session
 from typing import List 
 from schema.user import UserReadSimple
 
+
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 

@@ -15,7 +15,7 @@ class User(SQLModel, table=True):
     numero: Optional[str] = Field(default=None, index=True, unique=True)    
     vouchers: list["Voucher"] = Relationship(back_populates="user", passive_deletes="all", cascade_delete=False)
     transactions: list["Transaction"] = Relationship(back_populates="user", passive_deletes="all", cascade_delete=False)
-    statut: str = Field(default="active")  
+    statut: str = Field(default="active", nullable=False)
     role :  str = Field(default="user")
 
 

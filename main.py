@@ -4,7 +4,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session,select
-from typing import AsyncGenerator
 from database import engine ,get_session, create_table_in_db
 from models import User, Package, Transaction, Voucher 
 from routes import package, payement,auth
@@ -45,19 +44,6 @@ app.add_middleware(
 @app.get("/")
 async def read_root():
     return {"message": "Bienvenue sur le backend FastAPI de votre portail MikroTik!"}
-
-@app.post("/test-user/")
-async def create_test_user(username: str, db: Session = Depends(get_session)):
-    new_user = User(username=username, hashed_password="hashed_test_password")
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return {"message": "Utilisateur de test créé avec succès!", "user_id": new_user.id}
-
-@app.get("/users/")
-async def get_all_users(db: Session = Depends(get_session)):
-    users = db.exec(select(User)).all()
-    return users 
 
 app.include_router(package.router)
 app.include_router(payement.router)

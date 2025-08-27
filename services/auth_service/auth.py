@@ -28,10 +28,12 @@ def get_password_hash(password):
 
 def authenticate_user(username: str, password: str, session: Session = Depends(get_session)):
     user = get_user_by_username(session, username)
+    password = get_password_hash(password)
     if not user:
-        return False
-    if not verify_password(password, user.hashed_password):
-        return False
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
+    else :
+        if not verify_password(password, user.hashed_password):
+            raise HTTPException(status_code=400, detail="Incorrect password")
     return user
 
 
