@@ -45,6 +45,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"], 
 )
+@app.post("/")
+async def root():
+    return {"message": "Bienvenue sur l'API du Portail Captif MikroTik"}
 
 
 @app.post("/token",response_model=Token)
