@@ -84,18 +84,22 @@ async def delete_user(user_id: UUID, session: Session = Depends(get_session)):
     session.commit()
     return {"ok": True}
 
+# -------------------------------
+# UPDATE USER ROLES (ADMIN ONLY)
+# -------------------------------
+
 @router.put("/users/{user_id}/roles")
 async def update_user_roles(
     user_id: UUID,
-    new_roles: str, # Par exemple, "admin" ou "user"
+    new_roles: str, 
     current_user: Annotated[User, Security(get_current_user, scopes=["admin"])],
     db: Session = Depends(get_session)
 ):
-    # Vérifier si l'utilisateur à modifier existe
     user = get_user_by_id(db, user_id )
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+    if "admin" not in current_user.role:
+        raise HTTPException(status_code=403, detail="Operation not permitted")  
     # Mise à jour des rôles (tu peux stocker ça en JSON, array ou table liée)
     user.role = new_roles
     db.commit()

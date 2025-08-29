@@ -27,7 +27,7 @@ class Package(SQLModel, table=True):
     speed_limit: float = Field(default=1.0)
     mikrotik_profile_name: Optional[str] = Field(default=None, index=True, unique=True)
     is_synced: bool = Field(default=False)
-      # True si le profil a été
+    #True si le profil a été
     #period: Optional[str] = Field(default=None)
     #quantity_mbps: Optional[int] = Field(default=None)
     vouchers: list["Voucher"] = Relationship(back_populates="package", passive_deletes="all", cascade_delete=False)
