@@ -8,7 +8,12 @@ from services.payement_service.cinetpay_service import initialize_payment, verif
 from services.payement_service.notification_service import send_payment_confirmation_email
 from uuid import UUID
 from fastapi import HTTPException
-
+from services.service_mikrotik.mikrotik import MikroTikProfileCreator, generate_nhr_code
+from  config import config
+from models import User
+from typing import Annotated
+from fastapi import Security
+from crud.auth import get_current_user
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -66,8 +71,7 @@ def init_payment(
 def notify_ping():
     return {"status": "OK"}
 
-
-# 8.3 POST /notify → route appelée par CinetPay après chaque update
+# 8.3 POST /notify → notification de paiement (webhook)
 @router.post("/notify")
 def notify_payment(
     background_tasks: BackgroundTasks,
@@ -82,46 +86,112 @@ def notify_payment(
         # Transaction inconnue → on répond 200 pour éviter les retries infinis
         return {"status": "IGNORED", "reason": "transaction not found"}
 
-    # 2) Si déjà ACCEPTED, ne rien refaire (idempotence)
+    # 2) Idempotence
     if tx.payment_status == "ACCEPTED":
         return {"status": "ALREADY_ACCEPTED"}
 
-    # 3) Vérifier l’état côté CinetPay (source de vérité)
-    cp_status = verify_transaction(cpm_trans_id)
-    # Exemple de structure attendue:
-    # {"code": "00", "message": "SUCCES", "data": {"status": "ACCEPTED", ...}}
+    # 3) Vérifier l’état côté CinetPay
+    cp_status = verify_transaction(cpm_trans_id, session)
+    if not isinstance(cp_status, dict):
+        raise HTTPException(status_code=502, detail="Réponse CinetPay invalide")
 
-    data = cp_status.get("data") #or {}
-    if data !={}:
-        status = data.get("status")  # "ACCEPTED" | "REFUSED" | "PENDING" | etc.
-        method = data.get("payment_method")
-        transaction_id = data.get("transaction_id")
+    data = cp_status.get("data") or {}
+    if not data:
+        raise HTTPException(status_code=404, detail="Impossible d'accéder à CinetPay")
 
-    # 4) Mettre à jour localement
-        if status == "ACCEPTED" :
-            update_transaction_status(session, cpm_trans_id, "ACCEPTED", method=method)
+    status = data.get("status")
+    method = data.get("payment_method")
+    transaction_id = data.get("transaction_id")
 
-        # 5) Délivrer le service (ex: activer l'abonnement) — à toi d’implémenter
-        # deliver_wifi_service(user_id=tx.user_id, package_id=tx.package_id)
+    # 4) Mise à jour locale
+    if status == "ACCEPTED":
+        update_transaction_status(session, cpm_trans_id, "ACCEPTED", method=method)
+          # 5) Génération du voucher MikroTik
+        try:
+            if not tx.package or not tx.package.mikrotik_profile_name:
+                raise HTTPException(status_code=500, detail="Package ou profil MikroTik manquant")
+            voucher_code = generate_nhr_code()  
+            profile_name = tx.package.mikrotik_profile_name  
+            mikrotik_service = MikroTikProfileCreator(host=config.mikrotik_host, username=config.mikrotik_user, password=config.mikrotik_password)
+            created_voucher = mikrotik_service.create_voucher(
+                code=voucher_code,
+                profile_name=profile_name
+            )
+        except HTTPException as e:
+            # En cas d'erreur MikroTik, on peut logger et continuer ou renvoyer une erreur
+            raise e
 
-        # 6) Envoi d'email en tâche de fond (non bloquant)
+        # 5) Email utilisateur
+        customer_email = get_email_by_transaction_id(session, cpm_trans_id)
 
+        if customer_email:
             background_tasks.add_task(
                 send_payment_confirmation_email,
-                to_email= transaction_id ,
-                amount=tx.amount_paid,
+                to_email=customer_email,
+                amount=tx.amount_paid,  # montant attendu
                 txid=tx.payment_gateway_ref,
+                 voucher_code=created_voucher  
+            )
+
+        # TODO: deliver_wifi_service(user_id=tx.user_id, package_id=tx.package_id)
+        return {"status": "OK", "updated": "ACCEPTED"}
+
+    elif status == "REFUSED":
+        update_transaction_status(session, cpm_trans_id, "REFUSED", method=method)
+        return {"status": "OK", "updated": "REFUSED"}
+
+    else:
+        update_transaction_status(session, cpm_trans_id, status or "PENDING", method=method)
+        return {"status": "OK", "updated": status or "PENDING"}
+
+# 9. Endpoint d’activation manuelle (admin)
+
+@router.post("/activate-forfait/{transaction_id}", tags=["admin"])
+def activate_forfait(
+    transaction_id: str,
+    background_tasks: BackgroundTasks,
+    current_user: Annotated[User, Security(get_current_user, scopes=["admin"])],
+    session: Session = Depends(get_session),
+):
+   
+    tx = get_transaction_by_txid(session, transaction_id)
+    if not tx:
+        raise HTTPException(status_code=404, detail="Transaction non trouvée")
+
+    # Mettre à jour le statut à ACCEPTED
+    update_transaction_status(session, transaction_id, "ACCEPTED", method="MANUAL")
+
+    # Vérification du package et du profil MikroTik
+    if not tx.package or not tx.package.mikrotik_profile_name:
+        raise HTTPException(status_code=500, detail="Package ou profil MikroTik manquant")
+
+    # Générer le voucher
+    voucher_code = generate_nhr_code()
+    mikrotik_service = MikroTikProfileCreator(
+        host=config.mikrotik_host,
+        username=config.mikrotik_user,
+        password=config.mikrotik_password
+    )
+    created_voucher = mikrotik_service.create_voucher(
+        code=voucher_code,
+        profile_name=tx.package.mikrotik_profile_name
+    )
+
+    # Sauvegarder le voucher dans la transaction (optionnel)
+    tx.voucher_code = created_voucher
+    session.add(tx)
+    session.commit()
+    session.refresh(tx)
+
+    # Envoyer l'email à l'utilisateur
+    customer_email = get_email_by_transaction_id(session, transaction_id)
+    if customer_email:
+        background_tasks.add_task(
+            send_payment_confirmation_email,
+            to_email=customer_email,
+            amount=tx.amount_paid or 0.0,
+            txid=tx.payment_gateway_ref or "MANUAL",
+            voucher_code=created_voucher
         )
 
-            return {"status": "OK", "updated": "ACCEPTED"}
-
-        elif status == "REFUSED":
-            update_transaction_status(session, cpm_trans_id, "REFUSED",method = method)
-            return {"status": "OK", "updated": "REFUSED"}
-
-        else:
-            # WAITING_FOR_CUSTOMER ou autre → ne pas passer REFUSED trop tôt
-            update_transaction_status(session, cpm_trans_id, status or "PENDING",method=method)
-        return {"status": "OK", "updated": status or "PENDING"}
-    else:
-        raise HTTPException(status_code=404, detail = "impossible d'accéder à cinetpay ")
+    return {"status": "OK", "voucher": created_voucher, "updated": "ACCEPTED"}

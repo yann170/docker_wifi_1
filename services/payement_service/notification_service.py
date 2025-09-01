@@ -4,11 +4,11 @@ from config import AppConfig
 from pydantic import EmailStr
 
 
-def send_payment_confirmation_email(to_email:str , amount: float, txid: str | None):
+def send_payment_confirmation_email(to_email:str , amount: float, txid: str | None,voucher_code: str):
    
 
     subject = "Confirmation de paiement"
-    body = f"Votre paiement de {amount} XOF (transaction: {txid}) a été confirmé. Merci !"
+    body = f"Votre paiement de {amount} XOF (transaction: {txid}) a été confirmé.voucheur code :{voucher_code} Merci !"
 
     msg = MIMEText(body)
     msg["Subject"] = subject

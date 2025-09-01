@@ -5,6 +5,7 @@ from typing import Optional
 class Token(BaseModel):
     access_token: str
     token_type: str
+    refresh_token: Optional[str] = None
 
 
 class TokenData(BaseModel):
@@ -14,8 +15,11 @@ class TokenData(BaseModel):
 
 class User(BaseModel):
     username: str
+    statut: str
+    role: str
+    numero_telephone: str | None = None
+
     email: str | None = None
-    full_name: str | None = None
     disabled: bool | None = None
 
 

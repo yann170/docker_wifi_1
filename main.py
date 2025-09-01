@@ -1,12 +1,12 @@
 # main.py
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session,select
 from database import engine ,get_session, create_table_in_db
-from routes import package, payement,auth
-from routes import user
+from routes import package, payement,auth,user,transaction,voucher
+from models import User
 from services.auth_service.auth import authenticate_user, create_access_token
 from datetime import timedelta
 from schema.auth import Token
@@ -14,6 +14,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from config import config   
 from typing import Annotated
 from crud.auth import get_current_user
+from crud.user import get_role_by_username
 
 
 
@@ -45,12 +46,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"], 
 )
-@app.post("/")
+@app.get("/")
 async def root():
     return {"message": "Bienvenue sur l'API du Portail Captif MikroTik"}
 
-
-@app.post("/token",response_model=Token)
+@app.post("/token", response_model=Token)
 async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Session = Depends(get_session),
@@ -61,15 +61,20 @@ async def login_for_access_token(
     
     access_token_expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)
 
+    # Définir les scopes en fonction du rôle réel de l'utilisateur
+    user_scopes = get_role_by_username(session, form_data.username)
+
     access_token = create_access_token(
-    data={"sub": user.username, "scopes": form_data.scopes},
-    expires_delta=access_token_expires,
-)
+        data={"sub": user.username, "scopes": user_scopes},
+        expires_delta=access_token_expires,
+    )
     return Token(access_token=access_token, token_type="bearer")
 
 
 
 app.include_router(package.router,  dependencies=[Depends(get_current_user)],)
 app.include_router(payement.router,  dependencies=[Depends(get_current_user)],)
-app.include_router(user.router,  dependencies=[Depends(get_current_user)],)
+app.include_router(user.router)
 app.include_router(auth.router,)
+app.include_router(transaction.router)
+app.include_router(voucher.router)

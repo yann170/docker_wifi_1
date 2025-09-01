@@ -21,6 +21,8 @@ class UserReadSimple(SQLModel):
     email: Optional[EmailStr] = None
     created_at: datetime
     numero: Optional[str] = None
+    statut: str
+    role :  str 
 
 class UserReadDetail(UserReadSimple):
     vouchers: List[VoucherReadSimple] = [] 

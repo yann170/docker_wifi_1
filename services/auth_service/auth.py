@@ -23,7 +23,7 @@ def get_password_hash(password):
 
 def authenticate_user(username: str, password: str, session: Session):
     user = get_user_by_username(session, username)
-    if not user or not verify_password(password, user.hashed_password):
+    if not user or not verify_password(password, user.hashed_password) and user.statut != "delete":
         raise HTTPException(
             status_code=401,
             detail="Incorrect username or password",
@@ -38,6 +38,16 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
         expire = datetime.now(timezone.utc) + expires_delta
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, config.SECRET_KEY, algorithm=config.ALGORITHM)
+    return encoded_jwt
+
+def create_refresh_token(data: dict, expires_delta: timedelta | None = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(days=7)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, config.SECRET_KEY, algorithm=config.ALGORITHM)
     return encoded_jwt

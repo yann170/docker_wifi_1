@@ -24,7 +24,7 @@ oauth2_scheme = OAuth2PasswordBearer(
     scopes={"user": "obtain user information",
              "admin": "all access",},
 )
-async def get_current_user(
+def get_current_user(
     security_scopes: SecurityScopes,
     token: Annotated[str, Depends(oauth2_scheme)],
     db: Session = Depends(get_session)
@@ -62,9 +62,17 @@ async def get_current_user(
     return user
 
 
-async def get_current_active_user(
+def get_current_active_user(
     current_user: Annotated[User, Security(get_current_user, scopes=["user"])],
 ):
     if current_user.statut=="delete":
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+def get_current_active_admin(
+    current_user: Annotated[User, Security(get_current_user, scopes=["admin"])],
+):
+    if current_user.role != "admin" :
+         raise HTTPException(status_code=400, detail="Not enough permissions")
+    else:
+        return current_user
