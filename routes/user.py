@@ -12,6 +12,9 @@ from crud.auth import get_current_user
 from crud.user import get_user_by_id
 from services.auth_service.auth import get_password_hash
 from fastapi import Security
+from schema.voucher import VoucherReadSimple
+from schema.transaction import TransactionReadSimple
+from schema.package import PackageReadSimple    
 
 router = APIRouter(prefix="/users", tags=["Users"],)
 
@@ -51,7 +54,7 @@ def read_users(
 @router.get("/user/{user_id}", response_model=UserReadSimple)
 def read_user(user_id: UUID, session: Session = Depends(get_session)):
     user = session.get(User, user_id)
-    if not user:
+    if not user or user.statut == "delete":
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
@@ -61,7 +64,7 @@ def read_user(user_id: UUID, session: Session = Depends(get_session)):
 @router.patch("/user/{user_id}", response_model=UserReadSimple)
 def update_user(user_id: UUID, user_update: UserUpdate, session: Session = Depends(get_session)):
     db_user = session.get(User, user_id)
-    if not db_user:
+    if not db_user or db_user.statut == "delete":
         raise HTTPException(status_code=404, detail="User not found")
     
     update_data = user_update.model_dump(exclude_unset=True)
@@ -79,9 +82,42 @@ def update_user(user_id: UUID, user_update: UserUpdate, session: Session = Depen
 @router.delete("/user/{user_id}")
 async def delete_user(user_id: UUID, session: Session = Depends(get_session)):
     db_user = session.get(User, user_id)
-    if not db_user:
+    if not db_user or db_user.statut == "delete":
         raise HTTPException(status_code=404, detail="User not found")
     db_user.statut = "delete"
     session.add(db_user)
     session.commit()
     return {"ok": True}
+ 
+# ------------------------
+# Get all vouchers of a user
+# ------------------------
+@router.get("/{user_id}/vouchers", response_model=List[VoucherReadSimple])
+def get_user_vouchers(user_id: UUID, session: Session = Depends(get_session)):
+    user = session.get(User, user_id)
+    if not user or user.statut == "delete":
+        raise HTTPException(status_code=404, detail="User not found")
+    return user.vouchers
+
+# ------------------------
+# Get all transactions of a user
+# ------------------------
+@router.get("/{user_id}/transactions", response_model=List[TransactionReadSimple])
+def get_user_transactions(user_id: UUID, session: Session = Depends(get_session)):
+    user = session.get(User, user_id)
+    if not user or user.statut == "delete":
+        raise HTTPException(status_code=404, detail="User not found")
+    return user.transactions
+
+# ------------------------
+# Get all packages of a user (via transactions)
+# ------------------------
+@router.get("/{user_id}/packages", response_model=List[PackageReadSimple])
+def get_user_packages(user_id: UUID, session: Session = Depends(get_session)):
+    user = session.get(User, user_id)
+    if not user or user.statut == "delete":
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Récupère les packages achetés via les transactions
+    packages = [transaction.package for transaction in user.transactions if transaction.package]
+    return packages

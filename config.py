@@ -28,6 +28,11 @@ class AppConfig(BaseSettings):
     oauth2_scheme: str
     SCOPES: dict[str, str]
 
+    #--mikrotik---
+    mikrotik_host: str
+    mikrotik_user: str
+    mikrotik_password: str  
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

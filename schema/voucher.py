@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
-from uuid import UUID, uuid4
+from uuid import UUID
 
 
 class VoucherReadSimple(SQLModel):
@@ -9,15 +9,15 @@ class VoucherReadSimple(SQLModel):
     username_voucher: str
     password_voucher: str
     created_at: datetime
-    package_id: Optional[int]
+    package_id: Optional[UUID]
     gernerated_at: datetime
     user_id: Optional[int]
         
 
 
 class VoucherCreate(SQLModel):
-    user_id: Optional[int] 
-    package_id: Optional[int] 
+    user_id: Optional[UUID] 
+    package_id: Optional[UUID] 
     username_voucher: str
     password_voucher: str
 

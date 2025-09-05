@@ -1,4 +1,4 @@
-import jwt # type: ignore
+from jose import JWTError, jwt  # pyright: ignore[reportMissingModuleSource]
 from fastapi import Depends,  HTTPException, Security
 from passlib.context import CryptContext # pyright: ignore[reportMissingModuleSource]
 from datetime import datetime, timedelta, timezone
@@ -9,7 +9,7 @@ from crud.user import get_user_by_username
 from config import config
 from typing import Annotated
 from sqlmodel import Session
-from crud.user import get_role_by_username
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

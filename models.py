@@ -32,6 +32,7 @@ class Package(SQLModel, table=True):
     #quantity_mbps: Optional[int] = Field(default=None)
     vouchers: list["Voucher"] = Relationship(back_populates="package", passive_deletes="all", cascade_delete=False)
     transactions: list["Transaction"] = Relationship(back_populates="package", passive_deletes="all", cascade_delete=False)
+    statut: str = Field(default="active", nullable=False)  # active, deleted
 
 
 
@@ -46,6 +47,7 @@ class Transaction(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
     user: Optional["User"] = Relationship(back_populates="transactions")
     package: Optional["Package"] = Relationship(back_populates="transactions")
+    statut: str = Field(default="active", nullable=False)  # active, refunded, chargeback, deleted
     
 
 class Voucher(SQLModel, table=True):
@@ -57,3 +59,4 @@ class Voucher(SQLModel, table=True):
     generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
     user: Optional["User"] = Relationship(back_populates="vouchers")
     package: Optional["Package"] = Relationship(back_populates="vouchers")
+    statut: str = Field(default="active", nullable=False)  # active, used, expired, deleted

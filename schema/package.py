@@ -37,7 +37,6 @@ class PackageUpdate(SQLModel):
     name: Optional[str] = None
     price: Optional[float] = None
     validity_hours: Optional[float] = None
-    is_synced: Optional[bool]= None
     speed_limit: Optional[float] = None
     mikrotik_profile_name : Optional[str] = None
 

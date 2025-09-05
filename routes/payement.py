@@ -14,6 +14,10 @@ from models import User
 from typing import Annotated
 from fastapi import Security
 from crud.auth import get_current_user
+from crud.voucher import create_voucher
+from schema.voucher import VoucherCreate
+from crud.voucher import create_voucher
+from schema.voucher import VoucherCreate
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -117,6 +121,17 @@ def notify_payment(
                 code=voucher_code,
                 profile_name=profile_name
             )
+            # Créer un objet VoucherCreate
+            voucher_data = VoucherCreate(
+                username_voucher=created_voucher,           
+                password_voucher=created_voucher,  # ou un mot de passe différent
+                user_id=tx.user_id,
+                package_id=tx.package_id
+            )
+            # Appeler la fonction CRUD pour enregistrer en base
+            db_voucher = create_voucher(session=session, voucher_data=voucher_data)
+
+
         except HTTPException as e:
             # En cas d'erreur MikroTik, on peut logger et continuer ou renvoyer une erreur
             raise e
@@ -146,7 +161,7 @@ def notify_payment(
 
 # 9. Endpoint d’activation manuelle (admin)
 
-@router.post("/activate-forfait/{transaction_id}", tags=["admin"])
+@router.post("/activate-forfait/{transaction_id}", tags=["payments"])
 def activate_forfait(
     transaction_id: str,
     background_tasks: BackgroundTasks,
@@ -176,12 +191,20 @@ def activate_forfait(
         code=voucher_code,
         profile_name=tx.package.mikrotik_profile_name
     )
+    
 
-    # Sauvegarder le voucher dans la transaction (optionnel)
-    tx.voucher_code = created_voucher
-    session.add(tx)
-    session.commit()
-    session.refresh(tx)
+
+# Créer un objet VoucherCreate
+    voucher_data = VoucherCreate(
+        username_voucher=created_voucher,
+        password_voucher=created_voucher,  # ou un mot de passe différent
+        user_id=tx.user_id,
+        package_id=tx.package_id
+    )
+
+# Appeler la fonction CRUD pour enregistrer en base
+    db_voucher = create_voucher(session=session, voucher_data=voucher_data)
+
 
     # Envoyer l'email à l'utilisateur
     customer_email = get_email_by_transaction_id(session, transaction_id)

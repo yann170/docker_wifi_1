@@ -10,8 +10,8 @@ class TransactionReadSimple(SQLModel):
     payment_method: str 
     payment_status: str 
     payment_gateway_ref: Optional[str] = None
-    user_id: Optional[int] = None
-    package_id: Optional[int] = None
+    user_id: Optional[UUID] = None
+    package_id: Optional[UUID] = None
 
 
 class TransactionCreate(TransactionReadSimple):

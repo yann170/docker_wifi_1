@@ -22,8 +22,8 @@ def create_transaction(session: Session, *, transaction_id: str, user_id: UUID,
     return tx
 
 def get_transaction_by_txid(session: Session, transaction_id: str) -> Optional[Transaction]:
-    stmt = select(Transaction).where(Transaction.payment_gateway_ref== transaction_id)
-    if not transaction_id:
+    stmt = select(Transaction).where(Transaction.payment_gateway_ref== transaction_id and Transaction.statut !="delete")
+    if not transaction_id or transaction_id.strip() == "" :
         raise HTTPException(status_code=400, detail="Transaction ID is required")
     if not session:
         raise HTTPException(status_code=500, detail="Database session is not available")
@@ -32,7 +32,7 @@ def get_transaction_by_txid(session: Session, transaction_id: str) -> Optional[T
 
 def update_transaction_status(session: Session, transaction_id: str, new_status: str, method:str | None ) -> Optional[Transaction]:
     tx = get_transaction_by_txid(session, transaction_id)
-    if not tx:
+    if not tx or tx.statut == "delete":
         return None
     tx.payment_status = new_status
     tx.payment_method = method 
@@ -43,7 +43,7 @@ def update_transaction_status(session: Session, transaction_id: str, new_status:
 
 
 def get_user_email_by_user_id(session: Session, user_id: UUID) -> Optional[str]:
-    stmt = select(User).where(User.id == user_id)
+    stmt = select(User).where(User.id == user_id and User.statut !="delete" )
     user_email= session.exec(stmt).first()
     if user_email:
         return user_email.email
@@ -51,7 +51,7 @@ def get_user_email_by_user_id(session: Session, user_id: UUID) -> Optional[str]:
     
 def get_email_by_transaction_id(session: Session, transaction_id: str) -> Optional[str]:
     tx = get_transaction_by_txid(session, transaction_id)
-    if not tx:
+    if not tx or tx.statut == "delete":
         return None
     user_email = get_user_email_by_user_id(session, tx.user_id)
     return user_email

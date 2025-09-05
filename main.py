@@ -62,7 +62,8 @@ async def login_for_access_token(
     access_token_expires = timedelta(minutes=config.ACCESS_TOKEN_EXPIRE_MINUTES)
 
     # Définir les scopes en fonction du rôle réel de l'utilisateur
-    user_scopes = get_role_by_username(session, form_data.username)
+    user_scopes = [get_role_by_username(session, form_data.username)]
+
 
     access_token = create_access_token(
         data={"sub": user.username, "scopes": user_scopes},
