@@ -5,18 +5,16 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session,select
 from database import engine ,get_session, create_table_in_db
-from routes import package, payement,auth,user,transaction,voucher
-from models import User
-from services.auth_service.auth import authenticate_user, create_access_token
+from apps.routes import package, payement,auth,user,transaction,voucher
+from apps.models.models import User
+from apps.services.auth_service.auth import authenticate_user, create_access_token
 from datetime import timedelta
-from schema.auth import Token
+from apps.schema.auth import Token
 from fastapi.security import OAuth2PasswordRequestForm  
 from config import config   
 from typing import Annotated
-from crud.auth import get_current_user
-from crud.user import get_role_by_username
-
-
+from apps.crud.auth import get_current_user
+from apps.crud.user import get_role_by_username
 
 app = FastAPI(
     title="Portail Captif MikroTik API",

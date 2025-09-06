@@ -1,10 +1,3 @@
-"""add_user_role
-
-Revision ID: 4b79b4d13552
-Revises: 9ae0df370942
-Create Date: 2025-08-25 12:09:09.457123
-
-"""
 from typing import Sequence, Union
 
 from alembic import op
